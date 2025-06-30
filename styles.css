@@ -1,0 +1,67 @@
+#map {
+    height: 100%;
+    width: 100%;
+}
+
+.leaflet-draw-toolbar a {
+    background-color: white !important;
+    color: #4CAF50 !important;
+}
+
+.leaflet-draw-toolbar a:hover {
+    background-color: #f1f8e9 !important;
+}
+
+.leaflet-draw-actions {
+    background-color: white !important;
+}
+
+.leaflet-draw-actions a {
+    color: #4CAF50 !important;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(20px); }
+}
+
+/* Notification styles */
+.notification {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 10000;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.notification.success {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.notification.error {
+    background-color: #F44336;
+    color: white;
+}
+
+.notification.warning {
+    background-color: #FF9800;
+    color: white;
+}
+
+.notification.info {
+    background-color: #2196F3;
+    color: white;
+}
+
+.fade-out {
+    animation: fadeOut 0.5s ease-in;
+}

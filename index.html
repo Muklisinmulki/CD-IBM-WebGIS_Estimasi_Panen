@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Estimasi Panen - GIS</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #map {
+            height: calc(100vh - 64px);
+            width: 100%;
+        }
+        
+        .sidebar {
+            scrollbar-width: thin;
+            scrollbar-color: #e5e7eb #f9fafb;
+        }
+        
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: #f9fafb;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background-color: #e5e7eb;
+            border-radius: 3px;
+        }
+        
+        .notification {
+            @apply fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 font-medium;
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .leaflet-popup-content {
+            @apply m-3;
+        }
+        
+        .leaflet-popup-content h3 {
+            @apply mt-0 mb-2 text-lg font-semibold;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-3">
+            <h1 class="text-xl font-bold text-gray-800">
+                <i class="fas fa-leaf text-green-500 mr-2"></i> Estimasi Panen GIS
+            </h1>
+        </div>
+    </header>
+
+    <div class="flex flex-col md:flex-row">
+        <!-- Sidebar -->
+        <div class="w-full md:w-80 bg-white p-4 border-r border-gray-100 sidebar overflow-y-auto">
+            <div class="space-y-4">
+                <h2 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-user-circle text-green-500 mr-2"></i> Data Petani
+                </h2>
+                
+                <form id="userForm" class="space-y-3">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Nama Lengkap</label>
+                        <input type="text" id="nama" placeholder="Nama petani" required
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Email</label>
+                        <input type="email" id="email" placeholder="Email" required
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Lokasi Lahan</label>
+                        <input type="text" id="lokasi" placeholder="Desa/Kecamatan"
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Jenis Tanaman</label>
+                        <select id="jenisTanaman" required
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500">
+                            <option value="">Pilih Jenis Tanaman</option>
+                            <option value="padi">Padi</option>
+                            <option value="jagung">Jagung</option>
+                            <option value="kedelai">Kedelai</option>
+                            <option value="sayuran">Sayuran</option>
+                        </select>
+                    </div>
+                    
+                    <div class="pt-4 border-t border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">
+                            <i class="fas fa-map-marked-alt text-green-500 mr-2"></i> Area Lahan
+                        </h3>
+                        
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <button type="button" id="drawPolygon"
+                                class="bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg flex items-center justify-center text-sm transition">
+                                <i class="fas fa-draw-polygon mr-2"></i> Gambar
+                            </button>
+                            <button type="button" id="clearPolygon"
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-3 rounded-lg flex items-center justify-center text-sm transition">
+                                <i class="fas fa-trash-alt mr-2"></i> Hapus
+                            </button>
+                        </div>
+                        
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm text-gray-600">Luas Area:</span>
+                                <span id="areaSize" class="font-medium">0 hektar</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mb-1">Koordinat:</div>
+                            <div id="coordinatesList" class="text-xs bg-white p-2 rounded border border-gray-200 h-20 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 pt-2">
+                        <button type="submit" id="calculate"
+                            class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg flex items-center justify-center transition">
+                            <i class="fas fa-calculator mr-2"></i> Hitung
+                        </button>
+                        <button type="button" id="generateReport"
+                            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center justify-center transition">
+                            <i class="fas fa-download mr-2"></i> PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Map Area -->
+        <div class="flex-1 relative">
+            <div id="map"></div>
+            
+            <!-- Map Controls -->
+            <div class="absolute top-3 right-3 z-[1000] space-y-2">
+                <button id="savePolygonBtn"
+                    class="w-8 h-8 bg-white rounded-full shadow flex items-center justify-center text-green-500 hover:bg-green-50 transition">
+                    <i class="fas fa-save text-sm"></i>
+                </button>
+                <button id="zoomToPolygonBtn"
+                    class="w-8 h-8 bg-white rounded-full shadow flex items-center justify-center text-green-500 hover:bg-green-50 transition">
+                    <i class="fas fa-search text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
